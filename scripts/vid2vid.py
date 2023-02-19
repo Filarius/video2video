@@ -21,7 +21,7 @@ from modules.processing import Processed, process_images
 class Script(scripts.Script):
     # script title to show in ui
     def title(self):
-        return 'Video2video '
+        return 'Video2video'
 
     def show(self, is_img2img):
         #return scripts.AlwaysVisible
@@ -54,7 +54,6 @@ class Script(scripts.Script):
                 file_path = file_obj.name
             p.do_not_save_grid = True
             p.do_not_save_samples = True
-            os.
 
             initial_seed = p.seed
             p.do_not_save_grid = True
