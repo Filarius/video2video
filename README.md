@@ -5,4 +5,4 @@ Simple plugin to make img2img processing on video files directly. Saving in H264
 
 Under development, not that perfect as I wish
 
-Right now need to start from "Inpaint upload" tab in img2img
+Right now need to start from "Inpaint upload" tab in img2img, or add any dummy image to img2img tab input
