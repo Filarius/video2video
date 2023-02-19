@@ -148,7 +148,6 @@ class Script(scripts.Script):
                         encoder.write(np.asarray(output))
 
             encoder.write_eof()
-
             return Processed(p, [], p.seed, proc.info)
 
 class ffmpeg:
