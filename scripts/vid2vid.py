@@ -1,6 +1,7 @@
 # Author: Filarius
 # Credits: orcist1
 # https://github.com/Filarius
+# https://github.com/Filarius/video2video
 
 import json
 import os,sys
@@ -23,7 +24,7 @@ from modules import processing
 class Script(scripts.Script):
     # script title to show in ui
     def title(self):
-        return 'Video2video'
+        return 'Video2Video'
 
     def show(self, is_img2img):
         #return scripts.AlwaysVisible
@@ -56,8 +57,9 @@ class Script(scripts.Script):
 
             initial_seed = p.seed
             if initial_seed == -1:
-                initial_seed = randint(1,100000000)
-            processing.fix_seed(initial_seed)
+                initial_seed = randint(100000000,999999999)
+                p.seed = initial_seed
+            processing.fix_seed(p)
 
             p.do_not_save_grid = True
             p.do_not_save_samples = True
