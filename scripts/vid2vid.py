@@ -1,197 +1,151 @@
-# Author: Filarius and orcist1
-# adjusted from https://github.com/Filarius
+# Author: Filarius
+# Credits: orcist1
+# https://github.com/Filarius
 
-# import math
-# from fileinput import filename
-import os
-import sys
-
-# import traceback
-import random
-
-import modules.scripts as scripts
-import gradio as gr
-
-from modules.processing import Processed, process_images
-from PIL import Image
-
-# from modules.shared import opts, cmd_opts, state
-from modules.shared import state
-from modules import processing
-
+import json
+import os,sys
+import shutil
+import string
+import pathlib
 from subprocess import Popen, PIPE
 import numpy as np
+from PIL import Image
 
+import gradio as gr
+from modules import scripts
+from modules.images import save_image
+from modules.sd_samplers import sample_to_image
+from modules.sd_samplers_kdiffusion import KDiffusionSampler
+from modules.processing import Processed, process_images
 
 class Script(scripts.Script):
+    # script title to show in ui
     def title(self):
-        return "Video2video"
+        return 'Video2video '
 
     def show(self, is_img2img):
+        #return scripts.AlwaysVisible
         return is_img2img
 
-    def ui(self, is_img2img):
-        input_path = gr.Textbox(label="Input file path", lines=1)
-        # output_path = gr.Textbox(label="Output file path", lines=1)
-        crf = gr.Slider(
-            label="CRF (quality, less is better, x264 param)",
-            minimum=1,
-            maximum=40,
-            step=1,
-            value=24,
-        )
-        fps = gr.Slider(
-            label="FPS",
-            minimum=1,
-            maximum=60,
-            step=1,
-            value=24,
-        )
 
-        with gr.Row():
-            seed_walk = gr.Slider(
-                minimum=-20, maximum=20, step=1, label="Seed step size", value=0
-            )
-            seed_max_distance = gr.Slider(
-                minimum=1, maximum=200, step=1, label="Seed max distance", value=10
-            )
+    # ui components
+    def ui(self, is_visible):
+            with gr.Row():
+                file = gr.File(label="Upload Video", file_types = ['.*;'], live=True, file_count = "single")
+                tmp_path = gr.Textbox(label='Or path to file', lines=1, value='')
 
-        with gr.Row():
-            start_time = gr.Textbox(label="Start time", value="00:00:00", lines=1)
-            end_time = gr.Textbox(label="End time", value="00:00:00", lines=1)
 
-        return [
-            input_path,
-            crf,
-            fps,
-            seed_walk,
-            seed_max_distance,
-            start_time,
-            end_time,
-        ]
-
-    def run(
-        self,
-        p,
-        input_path,
-        crf,
-        fps,
-        seed_walk,
-        seed_max_distance,
-        start_time,
-        end_time,
-    ):
-        processing.fix_seed(p)
-
-        # p.subseed_strength == 0
-        initial_seed = p.seed
-        initial_info = None
-
-        p.do_not_save_grid = True
-        p.do_not_save_samples = True
-        p.batch_count = 1
-
-        start_time = start_time.strip()
-        end_time = end_time.strip()
-
-        if start_time == "" or start_time == "hh:mm:ss":
-            start_time = "00:00:00"
-        if end_time == "00:00:00" or end_time == "hh:mm:ss":
-            end_time = ""
-
-        time_interval = (
-            f"-ss {start_time}" + f" -to {end_time}" if len(end_time) else ""
-        )
-
-        import modules
-
-        path = modules.paths.script_path
-        save_dir = "outputs/img2img-video/"
-        ffmpeg.install(path, save_dir)
-
-        input_file = os.path.normpath(input_path.strip())
-        decoder = ffmpeg(
-            " ".join(
-                [
-                    "ffmpeg/ffmpeg -y -loglevel panic",
-                    f'{time_interval} -i "{input_file}"',
-                    f"-s:v {p.width}x{p.height} -r {fps}",
-                    "-f image2pipe -pix_fmt rgb24",
-                    "-vcodec rawvideo -",
-                ]
-            ),
-            use_stdout=True,
-        )
-        decoder.start()
-
-        output_file = input_file.split("\\")[-1]
-        encoder = ffmpeg(
-            " ".join(
-                [
-                    "ffmpeg/ffmpeg -y -loglevel panic",
-                    "-f rawvideo -pix_fmt rgb24",
-                    f"-s:v {p.width}x{p.height} -r {fps}",
-                    "-i - -c:v libx264 -preset medium",
-                    f'-crf {crf} "{save_dir}/{output_file}"',
-                ]
-            ),
-            use_stdin=True,
-        )
-        encoder.start()
-
-        batch = []
-        seed = initial_seed
-
-        frame = 1
-        if len(end_time) > 0:
-            seconds = ffmpeg.seconds(end_time) - ffmpeg.seconds(start_time)
-            loops = seconds * int(fps)
-            state.job_count = loops
-        else:
-            loops = None
-
-        pull_count = p.width * p.height * 3
-        raw_image = decoder.readout(pull_count)
-
-        while raw_image is not None and len(raw_image) > 0:
-            image_PIL = Image.fromarray(
-                np.uint8(raw_image).reshape((p.height, p.width, 3)), mode="RGB"
-            )
-            batch.append(image_PIL)
-
-            if len(batch) == p.batch_size:
-                seed_step = (
-                    random.randint(0, seed_walk)
-                    if seed_walk >= 0
-                    else random.randint(seed_walk, 0)
+            with gr.Row():
+                fps = gr.Slider(
+                    label="FPS change",
+                    minimum=1,
+                    maximum=60,
+                    step=1,
+                    value=24,
                 )
-                if (
-                    seed > 0
-                    or abs(seed + seed_step - initial_seed) <= seed_max_distance
-                ):
-                    seed = seed + seed_step
+            return [tmp_path, fps, file]
 
-                p.seed = [seed for _ in batch]
-                p.init_images = batch
-                batch = []
-                if loops is not None:
-                    state.job = f"{frame} / {int(loops)} | {seed} / {seed_step}"
+
+
+    def run(self, p, file_path, fps, file_obj, *args):
+                # return_images, all_prompts, infotexts, inter_images = [], [], [], []
+            # state.job_count = inp_gif.n_frames * p.n_iter
+            if not os.path.isfile(file_path):
+                file_path = file_obj.name
+            p.do_not_save_grid = True
+            p.do_not_save_samples = True
+            os.
+
+            initial_seed = p.seed
+            p.do_not_save_grid = True
+            p.do_not_save_samples = True
+            p.batch_count = 1
+
+            start_time = "00:00:00"
+            end_time = "00:00:00"
+            start_time = start_time.strip()
+            end_time = end_time.strip()
+
+            if start_time == "" or start_time == "hh:mm:ss":
+                start_time = "00:00:00"
+            if end_time == "00:00:00" or end_time == "hh:mm:ss":
+                end_time = ""
+
+            time_interval = (
+                f"-ss {start_time}" + f" -to {end_time}" if len(end_time) else ""
+            )
+
+            import modules
+
+            path = modules.paths.script_path
+            save_dir = "outputs/img2img-video/"
+            ffmpeg.install(path, save_dir)
+
+            input_file = os.path.normpath(file_path.strip())
+            decoder = ffmpeg(
+                " ".join(
+                    [
+                        "ffmpeg/ffmpeg -y -loglevel panic",
+                        f'{time_interval} -i "{input_file}"',
+                        f"-s:v {p.width}x{p.height} -r {fps}",
+                        "-f image2pipe -pix_fmt rgb24",
+                        "-vcodec rawvideo -",
+                    ]
+                ),
+                use_stdout=True,
+            )
+            decoder.start()
+
+            output_file = input_file.split("\\")[-1]
+            encoder = ffmpeg(
+                " ".join(
+                    [
+                        "ffmpeg/ffmpeg -y -loglevel panic",
+                        "-f rawvideo -pix_fmt rgb24",
+                        f"-s:v {p.width}x{p.height} -r {fps}",
+                        "-i - -c:v libx264 -preset medium",
+                        f'-crf 22 "{save_dir}/{output_file}"',
+                    ]
+                ),
+                use_stdin=True,
+            )
+            encoder.start()
+
+            pull_count = p.width * p.height * 3
+            batch = []
+
+            while True:
+                raw_image = decoder.readout(pull_count)
+                if len(raw_image) == 0:
+                    raw_image = None
+                if (raw_image is None) and len(batch)==0:
+                    break
+
+                if (raw_image is None):
+                   p.batch_size = len(batch)
                 else:
-                    state.job = f"{frame} / {seed} / {seed_step}"
-                proc = process_images(p)
-                if initial_info is None:
-                    initial_info = proc.info
+                    image_PIL = Image.fromarray(
+                        np.uint8(raw_image).reshape((p.height, p.width, 3)), mode="RGB"
+                    )
+                    batch.append(image_PIL)
 
-                for output in proc.images:
-                    if output.mode != "RGB":
-                        output=output.convert("RGB")
-                    encoder.write(np.asarray(output))
+                if len(batch) == p.batch_size:
+                    p.seed = initial_seed
+                    p.init_images = batch
+                    batch = []
+                    try:
+                        proc = process_images(p)
+                    except:
+                        break
 
-            raw_image = decoder.readout(pull_count)
-            frame += 1
+                    for output in proc.images:
+                        if output.mode != "RGB":
+                            output = output.convert("RGB")
+                        encoder.write(np.asarray(output))
 
-        return Processed(p, [], p.seed, initial_info)
+            encoder.write_eof()
 
+            return Processed(p, [], p.seed, proc.info)
 
 class ffmpeg:
     def __init__(
