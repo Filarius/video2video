@@ -229,9 +229,9 @@ class ffmpeg:
         ffmpeg_url = "https://github.com/GyanD/codexffmpeg/releases/download/5.1.1/ffmpeg-5.1.1-full_build.zip"
         ffmpeg_dir = os.path.join(path, "ffmpeg")
 
-        ckpt_path = load_file_from_url(url=ffmpeg_url, model_dir=ffmpeg_dir)
-
         if not os.path.exists(os.path.abspath(os.path.join(ffmpeg_dir, "ffmpeg.exe"))):
+            print("Downloading FFmpeg")
+            ckpt_path = load_file_from_url(url=ffmpeg_url, model_dir=ffmpeg_dir)
             with ZipFile(ckpt_path, "r") as zipObj:
                 listOfFileNames = zipObj.namelist()
                 for fileName in listOfFileNames:
@@ -252,6 +252,7 @@ class ffmpeg:
 
             os.rmdir(os.path.join(ffmpeg_dir, listOfFileNames[0][:-1], "bin"))
             os.rmdir(os.path.join(ffmpeg_dir, listOfFileNames[0][:-1]))
+            print("Downloading FFmpeg: Done")
         os.makedirs(save_dir, exist_ok=True)
         return
 
