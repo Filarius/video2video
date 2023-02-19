@@ -112,6 +112,7 @@ class Script(scripts.Script):
             decoder.start()
 
             output_file = input_file.split("\\")[-1]
+            output_file = output_file.split(".")[0]
             encoder = ffmpeg(
                 " ".join(
                     [
@@ -119,7 +120,7 @@ class Script(scripts.Script):
                         "-f rawvideo -pix_fmt rgb24",
                         f"-s:v {p.width}x{p.height} -r {fps}",
                         "-i - -c:v libx264 -preset medium",
-                        f'-crf 22 "{save_dir}/{output_file}"',
+                        f'-crf 22 -movflags faststart "{save_dir}/{output_file}.mp4"',
                     ]
                 ),
                 use_stdin=True,
