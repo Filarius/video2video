@@ -31,9 +31,15 @@ class Script(scripts.Script):
         #return scripts.AlwaysVisible
         return is_img2img
 
+    def __init__(self):
+        self.img2img_component = gr.Image()
+        self.img2img_inpaint_component = gr.Image()
+
 
     # ui components
     def ui(self, is_visible):
+            def img_dummy_update(*args):
+                return Image.new("RGB",(512,512),0)
             with gr.Row():
                 file = gr.File(label="Upload Video", file_types = ['.*;'], live=True, file_count = "single")
                 tmp_path = gr.Textbox(label='Or path to file', lines=1, value='')
@@ -45,16 +51,20 @@ class Script(scripts.Script):
                     step=1,
                     value=24,
                 )
+            file.upload(fn=img_dummy_update,inputs=[],outputs=[self.img2img_component])
+            tmp_path.change(fn=img_dummy_update,inputs=[],outputs=[self.img2img_component])
             return [tmp_path, fps, file]
 
+    def after_component(self, component, **kwargs):
+        if component.elem_id == "img2img_image":
+            self.img2img_component = component
+            return self.img2img_component
 
     def run(self, p:StableDiffusionProcessingImg2Img, file_path, fps, file_obj, *args):
                 # return_images, all_prompts, infotexts, inter_images = [], [], [], []
             # state.job_count = inp_gif.n_frames * p.n_iter
             if not os.path.isfile(file_path):
                 file_path = file_obj.name
-            p.do_not_save_grid = True
-            p.do_not_save_samples = True
 
             initial_seed = p.seed
             if initial_seed == -1:
