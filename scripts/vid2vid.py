@@ -21,6 +21,7 @@ from modules.sd_samplers_kdiffusion import KDiffusionSampler
 from modules.processing import Processed, process_images, StableDiffusionProcessingImg2Img
 from modules import processing
 
+
 class Script(scripts.Script):
     # script title to show in ui
     def title(self):
