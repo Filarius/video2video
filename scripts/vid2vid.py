@@ -10,13 +10,15 @@ import pathlib
 from subprocess import Popen, PIPE
 import numpy as np
 from PIL import Image
+from random import randint
 
 import gradio as gr
 from modules import scripts
 from modules.images import save_image
 from modules.sd_samplers import sample_to_image
 from modules.sd_samplers_kdiffusion import KDiffusionSampler
-from modules.processing import Processed, process_images
+from modules.processing import Processed, process_images, StableDiffusionProcessingImg2Img
+from modules import processing
 
 class Script(scripts.Script):
     # script title to show in ui
@@ -33,8 +35,6 @@ class Script(scripts.Script):
             with gr.Row():
                 file = gr.File(label="Upload Video", file_types = ['.*;'], live=True, file_count = "single")
                 tmp_path = gr.Textbox(label='Or path to file', lines=1, value='')
-
-
             with gr.Row():
                 fps = gr.Slider(
                     label="FPS change",
@@ -46,8 +46,7 @@ class Script(scripts.Script):
             return [tmp_path, fps, file]
 
 
-
-    def run(self, p, file_path, fps, file_obj, *args):
+    def run(self, p:StableDiffusionProcessingImg2Img, file_path, fps, file_obj, *args):
                 # return_images, all_prompts, infotexts, inter_images = [], [], [], []
             # state.job_count = inp_gif.n_frames * p.n_iter
             if not os.path.isfile(file_path):
@@ -56,6 +55,10 @@ class Script(scripts.Script):
             p.do_not_save_samples = True
 
             initial_seed = p.seed
+            if initial_seed == -1:
+                initial_seed = randint(1,100000000)
+            processing.fix_seed(initial_seed)
+
             p.do_not_save_grid = True
             p.do_not_save_samples = True
             p.batch_count = 1
