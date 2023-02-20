@@ -13,6 +13,8 @@ import numpy as np
 from PIL import Image
 from random import randint
 
+from modules.script_callbacks import on_cfg_denoiser,on_cfg_denoised, CFGDenoiserParams
+
 import gradio as gr
 from modules import scripts
 from modules.images import save_image
@@ -20,6 +22,33 @@ from modules.sd_samplers import sample_to_image
 from modules.sd_samplers_kdiffusion import KDiffusionSampler
 from modules.processing import Processed, process_images, StableDiffusionProcessingImg2Img
 from modules import processing
+
+
+class LatentMemory:
+    def __init__(self, interp_factor=0.1, scale_factor = 0.95):
+        self.latents_now = []
+        self.latents_mem = []
+        self.flushed = False
+        self.ifactor = interp_factor
+        self.nowfactor = self.ifactor
+        self.scalefactor = scale_factor
+
+    def put(self,latent):
+        self.latents_now.append(latent)
+
+    def get(self):
+        return self.latents_mem.pop(0)
+
+    def interpolate(self, latent1, latent2):
+        latent = latent1 * (1. - self.nowfactor) + latent2 * self.nowfactor
+        self.nowfactor = self.nowfactor * self.scalefactor
+        return latent
+
+    def flush(self):
+        self.latents_mem = self.latents_now
+        self.latents_now = []
+        self.nowfactor = self.ifactor
+        self.flushed = True
 
 
 class Script(scripts.Script):
@@ -34,6 +63,7 @@ class Script(scripts.Script):
     def __init__(self):
         self.img2img_component = gr.Image()
         self.img2img_inpaint_component = gr.Image()
+        self.is_have_callback = False
 
 
     # ui components
@@ -51,18 +81,52 @@ class Script(scripts.Script):
                     step=1,
                     value=24,
                 )
+            with gr.Row():
+                gr.HTML(value='<div class="text-center block">Latent space temporal blending</div></br>')
+            with gr.Row():
+                sfactor  = gr.Slider(
+                    label="Strength",
+                    minimum=0.0,
+                    maximum=1.0,
+                    step=0.01,
+                    value=0.1,
+                )
+                sexp = gr.Slider(
+                    label="Strength scaling (per step)",
+                    minimum=0.9,
+                    maximum=1.1,
+                    step=0.005,
+                    value=1.0,
+                )
             file.upload(fn=img_dummy_update,inputs=[],outputs=[self.img2img_component])
             tmp_path.change(fn=img_dummy_update,inputs=[],outputs=[self.img2img_component])
-            return [tmp_path, fps, file]
+            return [tmp_path, fps, file,sfactor,sexp]
 
     def after_component(self, component, **kwargs):
         if component.elem_id == "img2img_image":
             self.img2img_component = component
             return self.img2img_component
 
-    def run(self, p:StableDiffusionProcessingImg2Img, file_path, fps, file_obj, *args):
+    def run(self, p:StableDiffusionProcessingImg2Img, file_path, fps, file_obj, sfactor, sexp, *args):
                 # return_images, all_prompts, infotexts, inter_images = [], [], [], []
             # state.job_count = inp_gif.n_frames * p.n_iter
+            self.latentmem = LatentMemory(interp_factor=sfactor,scale_factor=sexp)
+            if not self.is_have_callback:
+                print('CALLBACK')
+                print('CALLBACK')
+                print('CALLBACK')
+                def callback(params:CFGDenoiserParams):
+                    self.latentmem.put(params.x)
+                    if self.latentmem.flushed:
+                        latent = self.latentmem.get()
+                        params.x = self.latentmem.interpolate(params.x, latent)
+
+                    if params.sampling_step == params.total_sampling_steps-2:
+                        self.latentmem.flush()
+
+                on_cfg_denoiser(callback)
+                self.is_have_callback = True
+
             if not os.path.isfile(file_path):
                 file_path = file_obj.name
 
