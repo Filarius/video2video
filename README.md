@@ -1,8 +1,14 @@
-# video2video
-Automatic1111 Stable Diffusion WebUI Video Extension
+# Automatic1111 Stable Diffusion WebUI Video2Video Extension
 
-Simple plugin to make img2img processing on video files directly. Saving in H264 codec in "img2img-video" folder.
+## Pluging for img2img video processing
+- No more image files on hard disk.
+- Video fps (must be) set manualy (for now).
+- Now with latent space temporal blending.
 
-Under development, not that perfect as I wish
+Result saved to **output** folder **img2img-video** as MP4 file in H264 encoding (no audio). 
 
-Right now need to start from "Inpaint upload" tab in img2img, or add any dummy image to img2img tab input
+Added optional temporal blending for latent space. Applied per each step between previous and current frame.
+
+Need a FFmpeg. For OS Windows implemented automatic installation of FFmpeg.
+
+Under development, bugs applied.
