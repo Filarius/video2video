@@ -13,4 +13,8 @@ Need a FFmpeg. For OS Windows implemented automatic installation of FFmpeg.
 
 Under development, bugs applied.
 
+
+
+TODO
+
 Bug: latent blending will work right only for batch_size = 1
