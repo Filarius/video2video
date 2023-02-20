@@ -12,3 +12,5 @@ Added optional temporal blending for latent space. Applied per each step between
 Need a FFmpeg. For OS Windows implemented automatic installation of FFmpeg.
 
 Under development, bugs applied.
+
+Bug: latent blending will work right only for batch_size = 1
