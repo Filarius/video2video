@@ -29,7 +29,7 @@ class LatentMemory:
         self.latents_now = []
         self.latents_mem = []
         self.flushed = False
-        self.ifactor = interp_factor
+        self.ifactor = interp_factor * 0.5 #
         self.nowfactor = self.ifactor
         self.scalefactor = scale_factor
 
@@ -89,7 +89,7 @@ class Script(scripts.Script):
                     minimum=0.0,
                     maximum=1.0,
                     step=0.01,
-                    value=0.1,
+                    value=0.2,
                 )
                 sexp = gr.Slider(
                     label="Strength scaling (per step)",
@@ -108,13 +108,8 @@ class Script(scripts.Script):
             return self.img2img_component
 
     def run(self, p:StableDiffusionProcessingImg2Img, file_path, fps, file_obj, sfactor, sexp, *args):
-                # return_images, all_prompts, infotexts, inter_images = [], [], [], []
-            # state.job_count = inp_gif.n_frames * p.n_iter
             self.latentmem = LatentMemory(interp_factor=sfactor,scale_factor=sexp)
             if not self.is_have_callback:
-                print('CALLBACK')
-                print('CALLBACK')
-                print('CALLBACK')
                 def callback(params:CFGDenoiserParams):
                     self.latentmem.put(params.x)
                     if self.latentmem.flushed:
