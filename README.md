@@ -19,6 +19,6 @@ ffmpeg
 
 skvideo (pip install sk-video)
 
-TODO
+## TODO
 
 Bug: latent blending will work right only for batch_size = 1
