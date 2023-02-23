@@ -127,7 +127,7 @@ class Script(scripts.Script):
                 ffmpeg.install(path)
                 import skvideo
                 skvideo.setFFmpegPath(os.path.join(path, "ffmpeg"))
-                import skvideo.io
+            import skvideo.io                          
 
             self.latentmem = LatentMemory(interp_factor=sfactor,scale_factor=sexp)
             if not self.is_have_callback:
