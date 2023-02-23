@@ -195,8 +195,6 @@ class Script(scripts.Script):
                 decoder = skvideo.io.FFmpegReader(input_file,outputdict={
                 '-r':str(fps)
             })
-            print()
-            print('FPS ', decoder.inputfps)
             state.job_count = decoder.inputframenum
             job_i = 0
             state.job_no = job_i
@@ -289,9 +287,6 @@ class Script(scripts.Script):
                             output = output.convert("RGB")
                         encoder.writeFrame(np.asarray(output).copy())
                         job_i += 1
-                        print(job_i)
-                        print(job_i)
-                        print(job_i)
                         state.job_no = job_i
 
             #encoder.write_eof()
