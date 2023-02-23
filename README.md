@@ -13,7 +13,11 @@ Need a FFmpeg. For OS Windows implemented automatic installation of FFmpeg.
 
 Under development, bugs applied.
 
+## Dependencies
 
+ffmpeg
+
+skvideo (pip install sk-video)
 
 TODO
 
