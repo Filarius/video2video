@@ -127,7 +127,7 @@ class Script(scripts.Script):
                 ffmpeg.install(path)
                 import skvideo
                 skvideo.setFFmpegPath(os.path.join(path, "ffmpeg"))
-            import skvideo.io                          
+            import skvideo.io
 
             self.latentmem = LatentMemory(interp_factor=sfactor,scale_factor=sexp)
             if not self.is_have_callback:
@@ -199,8 +199,9 @@ class Script(scripts.Script):
             job_i = 0
             state.job_no = job_i
 
-            output_file = input_file.split("\\")[-1]
-            output_file = output_file.split(".")[0]
+            output_file = os.path.basename(input_file)
+            output_file = os.path.splitext(output_file)[0]
+
             i=1
             while os.path.isfile(f'{save_dir}/{i}_{output_file}.mp4'):
                 i+=1
@@ -218,7 +219,7 @@ class Script(scripts.Script):
                 sp = fps.split('/')
                 if len(sp)==2 and (sp[1]=='1'):
                     fps = sp[0]
-
+            print(output_file)
             encoder = skvideo.io.FFmpegWriter(output_file,
                 inputdict={
                     '-r': str(fps),
