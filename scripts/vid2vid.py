@@ -145,6 +145,7 @@ class Script(scripts.Script):
             path = modules.paths.script_path
             if platform.system() == 'Windows':
                 ffmpeg.install(path)
+                import skvideo
                 skvideo.setFFmpegPath(os.path.join(path, "ffmpeg"))
             import skvideo.io
 
