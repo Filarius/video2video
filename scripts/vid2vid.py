@@ -25,9 +25,20 @@ from modules.sd_samplers_kdiffusion import KDiffusionSampler
 from modules.processing import Processed, process_images, StableDiffusionProcessingImg2Img
 from modules import processing
 from modules.shared import state
-
-
 import json
+
+try: # make me know if there is better solution
+    import skvideo
+except:
+    if 'VENV_DIR' in os.environ:
+        path = os.path.join(os.environ["VENV_DIR"],'scripts','python')
+    elif 'PYTHON' in os.environ:
+        path = os.path.join(os.environ["PYTHON"], 'python')
+    else:
+        from shutil import which
+        path = which("python")
+    os.system(path+ " -m pip install sk-video")
+    import skvideo
 
 class LatentMemory:
     def __init__(self, interp_factor=0.1, scale_factor = 0.95):
@@ -76,8 +87,16 @@ class Script(scripts.Script):
 
     # ui components
     def ui(self, is_visible):
-            def img_dummy_update(*args):
-                return Image.new("RGB",(512,512),0)
+            def img_dummy_update(arg):
+                if arg is None:
+                    dummy_image = "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"
+                    import io
+                    import base64
+                    dummy_image = io.BytesIO(base64.b64decode(dummy_image))
+                    img = Image.open(dummy_image)
+                    return img
+                else:
+                    return arg
             with gr.Row():
                 file = gr.File(label="Upload Video", file_types = ['.*;'], live=True, file_count = "single")
                 tmp_path = gr.Textbox(label='Or path to file', lines=1, value='')
@@ -110,8 +129,9 @@ class Script(scripts.Script):
                             step=0.005,
                             value=1.0,
                         )
-            file.upload(fn=img_dummy_update,inputs=[],outputs=[self.img2img_component])
-            tmp_path.change(fn=img_dummy_update,inputs=[],outputs=[self.img2img_component])
+            file.upload(fn=img_dummy_update,inputs=[self.img2img_component],outputs=[self.img2img_component])
+            tmp_path.change(fn=img_dummy_update,inputs=[self.img2img_component],outputs=[self.img2img_component])
+            #self.img2img_component.update(Image.new("RGB",(512,512),0))
             return [tmp_path, fps, file,sfactor,sexp,freeze_input_fps,keep_fps]
 
     def after_component(self, component, **kwargs):
@@ -125,7 +145,6 @@ class Script(scripts.Script):
             path = modules.paths.script_path
             if platform.system() == 'Windows':
                 ffmpeg.install(path)
-                import skvideo
                 skvideo.setFFmpegPath(os.path.join(path, "ffmpeg"))
             import skvideo.io
 
@@ -172,23 +191,6 @@ class Script(scripts.Script):
 
             input_file = os.path.normpath(file_path.strip())
 
-            '''
-            decoder = ffmpeg(
-                " ".join(
-                    [
-                        "ffmpeg/ffmpeg -y -loglevel panic",
-                        f'{time_interval} -i "{input_file}"',
-                        f"-s:v {p.width}x{p.height} -r {fps}",
-                        "-f image2pipe -pix_fmt rgb24",
-                        "-vcodec rawvideo -",
-                    ]
-                ),
-                use_stdout=True,
-            )
-            
-            decoder.start()
-            '''
-
             if freeze_input_fps:
                 decoder = skvideo.io.FFmpegReader(input_file)
             else:
@@ -229,42 +231,11 @@ class Script(scripts.Script):
                 '-vcodec': 'libx264',
                 '-crf': '22'
             })
-            '''
-            encoder = ffmpeg(
-                " ".join(
-                    [
-                        "ffmpeg/ffmpeg -y -loglevel panic",
-                        "-f rawvideo -pix_fmt rgb24",
-                        f"-s:v {p.width}x{p.height} -r {fps}",
-                        "-i - -c:v libx264 -preset medium",
-                        f'-crf 22 -movflags faststart "{save_dir}/{output_file}.mp4"',
-                    ]
-                ),
-                use_stdin=True,
-            )
-            encoder.start()
-            '''
 
-            #pull_count = p.width * p.height * 3
             batch = []
             is_last = False
             frame_generator = decoder.nextFrame()
             while not is_last:
-
-            #while True:
-                #raw_image = decoder.readout(pull_count)
-                #if len(raw_image) == 0:
-                #    raw_image = None
-                #if (raw_image is None) and len(batch)==0:
-                #    break
-
-                #if (raw_image is None):
-                #   p.batch_size = len(batch)
-                #else:
-                #if (decoder.inputwidth != p.width) or (decoder.inputheight != p.height):
-                    #image_PIL = Image.fromarray(
-                    #    np.uint8(raw_image).reshape((p.height, p.width, 3)), mode="RGB"
-                    #)
 
                 raw_image = next(frame_generator,[])
                 image_PIL = None
@@ -296,7 +267,7 @@ class Script(scripts.Script):
             self.is_have_callback = False
             return Processed(p, [], p.seed, proc.info)
 
-#def get_video_info(path)
+
 class ffmpeg:
     def __init__(
         self,
@@ -307,7 +278,7 @@ class ffmpeg:
         print_to_console=True,
     ):
         self._process = None
-        self._cmdln = cmdln#.split(' ')
+        self._cmdln = cmdln
         self._stdin = None
 
         if use_stdin:
@@ -336,8 +307,6 @@ class ffmpeg:
             )
         except Exception as e:
             print(e)
-
-
 
     def readout(self, cnt=None):
         if cnt is None:
