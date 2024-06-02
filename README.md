@@ -1,3 +1,7 @@
+## Abandomed
+
+This project is currently abandomed, no more fixes to get work with latest version of Automatic1111
+
 # Automatic1111 Stable Diffusion WebUI Video2Video Extension
 
 ## Pluging for img2img video processing
